@@ -1,6 +1,3 @@
-# Танчики · пишите стратегию здесь
-# Каждый тик вызывается think(me, world) и должна вернуть команду.
-
 def think(me, world):
     """
     me: x, y, angle (0/90/180/270), hp, energy, cooldown, alive
@@ -9,14 +6,118 @@ def think(me, world):
 
     return: "forward" | "back" | "left" | "right" | "fire" | "idle"
     """
-    # Пример: ехать вперёд и стрелять, если враг близко
+    import math
+
+    if not me.get("alive", True):
+        return "idle"
+
+    mx, my = me["x"], me["y"]
+    my_angle = me["angle"] % 360
+
     enemies = world.get("enemies") or []
-    if enemies:
-        e = enemies[0]
-        dx = e["x"] - me["x"]
-        dy = e["y"] - me["y"]
-        if abs(dx) + abs(dy) < 8 and me["cooldown"] <= 0:
+    boosters = world.get("boosters") or []
+    bullets = world.get("bullets") or []
+    W = world.get("width", 40)
+    H = world.get("height", 40)
+
+    # ---- 1. Сначала — уклонение от пуль ----
+    danger = None
+    danger_dist = 3  # радиус опасности
+    for b in bullets:
+        if b.get("owner_id") == me.get("id"):
+            continue
+        bx, by = b["x"], b["y"]
+        d = abs(bx - mx) + abs(by - my)
+        if d < danger_dist:
+            # пуля летит по нашей линии? просто уходим перпендикулярно
+            if d < danger_dist:
+                danger = (bx, by)
+                danger_dist = d
+
+    if danger:
+        bx, by = danger
+        dx, dy = bx - mx, by - my
+        # уходим в сторону, перпендикулярно пуле
+        if abs(dx) > abs(dy):
+            # пуля по горизонтали — двигаемся вертикально
+            if my + 1 < H:
+                return "right"  # поворот, чтобы уйти (при 0° right = вниз)
+            return "left"
+        else:
+            if mx + 1 < W:
+                return "forward"
+            return "back"
+
+    # ---- 2. Выбор цели: ближайший враг ----
+    target = None
+    best_d = 10**9
+    for e in enemies:
+        if e.get("hp", 1) <= 0:
+            continue
+        d = abs(e["x"] - mx) + abs(e["y"] - my)
+        if d < best_d:
+            best_d = d
+            target = e
+
+    # ---- 3. Логика боя ----
+    if target:
+        tx, ty = target["x"], target["y"]
+        dx = tx - mx
+        dy = ty - my
+
+        # нужный угол (в этой игре 0=вправо, 90=вверх, 180=влево, 270=вниз)
+        if abs(dx) >= abs(dy):
+            want = 0 if dx > 0 else 180
+        else:
+            want = 90 if dy > 0 else 270
+        # если ось Y экранная (вниз растёт) — поменяй местами 90/270
+
+        # поворачиваемся к цели
+        if my_angle != want:
+            diff = (want - my_angle) % 360
+            if diff == 90:
+                return "left"
+            elif diff == 270:
+                return "right"
+            else:
+                # 180 — крутимся в любую сторону
+                return "left"
+
+        # на линии огня — стреляем
+        aligned = (my_angle == want)
+        if aligned and me.get("cooldown", 0) <= 0 and best_d < 15:
             return "fire"
-    if me["energy"] > 5:
+
+        # слишком близко — отходим, иначе едем на сближение
+        if best_d < 3:
+            return "back"
+        if best_d > 6:
+            return "forward"
+        # держим дистанцию — стоим и ждём кулдаун
+        return "idle"
+
+    # ---- 4. Нет врагов — идём к бустеру ----
+    if boosters:
+        b = min(boosters, key=lambda z: abs(z["x"] - mx) + abs(z["y"] - my))
+        dx = b["x"] - mx
+        dy = b["y"] - my
+        if abs(dx) >= abs(dy):
+            want = 0 if dx > 0 else 180
+        else:
+            want = 90 if dy > 0 else 270
+        if my_angle != want:
+            diff = (want - my_angle) % 360
+            if diff == 90:
+                return "left"
+            elif diff == 270:
+                return "right"
+            return "left"
         return "forward"
-    return "idle" 
+
+    # ---- 5. Совсем скучно — патрулируем ----
+    # едем вперёд, при упоре в стену — поворачиваем
+    nx = mx + {0: 1, 90: 0, 180: -1, 270: 0}[my_angle]
+    ny = my + {0: 0, 90: -1, 180: 0, 270: 1}[my_angle]
+    if nx < 0 or nx >= W or ny < 0 or ny >= H:
+        return "left"
+    return "forward"
