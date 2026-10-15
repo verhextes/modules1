@@ -1,9 +1,22 @@
-3. Цитата и формула
+# Танчики · пишите стратегию здесь
+# Каждый тик вызывается think(me, world) и должна вернуть команду.
 
-Цитата оформляется отступом слева 2 см и справа 1 см, шрифт 12 пт, курсив. Площадь круга вычисляется по формуле 5 = лг², а химическая формула
+def think(me, world):
+    """
+    me: x, y, angle (0/90/180/270), hp, energy, cooldown, alive
+    world: enemies[{id,x,y,hp,angle}], boosters[{x,y,kind}],
+           bullets[{x,y,owner_id}], width, height
 
-воды — Н2О.
-
-4. Заключение
-
-Сохраните готовую работу в формате doсх и сдайте преподавателю. Внешний вид вашего документа должен совпадать с образцом
+    return: "forward" | "back" | "left" | "right" | "fire" | "idle"
+    """
+    # Пример: ехать вперёд и стрелять, если враг близко
+    enemies = world.get("enemies") or []
+    if enemies:
+        e = enemies[0]
+        dx = e["x"] - me["x"]
+        dy = e["y"] - me["y"]
+        if abs(dx) + abs(dy) < 8 and me["cooldown"] <= 0:
+            return "fire"
+    if me["energy"] > 5:
+        return "forward"
+    return "idle" 
