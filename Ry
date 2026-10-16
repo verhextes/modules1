@@ -1,0 +1,42 @@
+if x == 5:
+    print("Пять")
+
+if x > 5:
+    print("Больше пяти")
+
+age = 20
+if age >= 18:
+    print("Совершеннолетний")
+
+if age > 18:
+    print("Взрослый")
+else:
+    print("Ребёнок")
+
+
+answer = input("Продолжить? ")
+if answer == "да" or answer == "нет":
+    print("Понял")
+
+score = 95
+if score >= 90:
+    print("Оценка 5")
+elif score >= 75:
+    print("Оценка 4")
+elif score >= 60:
+    print("Оценка 3")
+
+
+ticket = True
+if ticket:
+    print("Проходите")
+else:
+    print("Приложите карту")
+
+
+
+ticket = True
+if ticket:
+    print("Проходите")
+else:
+    print("Приложите карту")
