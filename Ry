@@ -1,92 +1,50 @@
-8.
-age = int(input("Введите возраст: "))
-if age < 6:
-    print("Бесплатно")
-elif age <= 13:
-    print("Детский")
-elif age <= 17:
-    print("Подростковый")
-else:
-    print("Взрослый")
-9.
-age = int(input("Возраст: "))
-cert = input("Справка (да/нет): ")
-if age >= 7 and cert == "да":
-    print("Пустят")
-else:
-    print("Не пустят")
-if age < 10:
-    print("Только с родителями")
-10.
-n = int(input("Введите целое число: "))
-if n > 0:
-    print("Положительное")
-elif n < 0:
-    print("Отрицательное")
-else:
-    print("Ноль")
-11.
-color = input("Введите цвет: ")
-if color == "зелёный":
-    print("Идите")
-elif color == "жёлтый":
-    print("Приготовьтесь")
-elif color == "красный":
-    print("Стойте")
-else:
-    print("Нет такого цвета")
-12.
-price = int(input("Цена: "))
-money = int(input("Деньги: "))
-if money >= price:
-    print("Покупаем")
-    print("Сдача:", money - price)
-else:
-    print("Не хватает:", price - money)
-13.
-login = input("Логин: ")
-password = input("Пароль: ")
-if login == "admin" and password == "1234":
-    print("Добро пожаловать!")
-else:
-    print("Неверный логин или пароль")
-14.
-a = int(input("a = "))
-b = int(input("b = "))
-c = int(input("c = "))
-if a >= b and a >= c:
-    print("Наибольшее:", a)
-elif b >= a and b >= c:
-    print("Наибольшее:", b)
-else:
-    print("Наибольшее:", c)
-15.
-year = int(input("Год: "))
-if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
-    print("Високосный")
-else:
-    print("Не високосный")
-16. 
-a = float(input("a = "))
-b = float(input("b = "))
-c = float(input("c = "))
-if a + b > c and a + c > b and b + c > a:
-    if a == b == c:
-        print("Равносторонний")
-    elif a == b or a == c or b == c:
-        print("Равнобедренный")
-    else:
-        print("Разносторонний")
-else:
-    print("Такого треугольника не бывает")
-
-часть 5
-
-б
-в
-б
-в
-б
-а
-б
-в
+1. Б
+2. Г
+3. Б
+4. А
+5. В
+6. Б
+7. А
+8. В
+9. В
+10. А
+11. Г
+12. Г
+13. Б
+14. В
+15. Б
+16. В
+17. А
+18. В
+19. Г
+20. А
+21. А
+22. А
+23. В
+24. Б
+25. В
+26. Б
+27. Б
+28. Г
+29. Г
+30. Б
+31. Б
+32. Б
+33. Б
+34. А
+35. Г
+36. А
+37. Г
+38. А
+39. А
+40. В
+41. Г
+42. Г
+43. В
+44. В
+45. В
+46. Б
+47. Г
+48. А
+49. А
+50. Г
