@@ -1,50 +1,337 @@
-1. Б
-2. Г
-3. Б
-4. А
-5. В
-6. Б
-7. А
-8. В
-9. В
-10. А
-11. Г
-12. Г
-13. Б
-14. В
-15. Б
-16. В
-17. А
-18. В
-19. Г
-20. А
-21. А
-22. А
-23. В
-24. Б
-25. В
-26. Б
-27. Б
-28. Г
-29. Г
-30. Б
-31. Б
-32. Б
-33. Б
-34. А
-35. Г
-36. А
-37. Г
-38. А
-39. А
-40. В
-41. Г
-42. Г
-43. В
-44. В
-45. В
-46. Б
-47. Г
-48. А
-49. А
-50. Г
+CREATE TABLE warehouses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    city VARCHAR(50),
+    capacity INT
+) ENGINE=InnoDB;
+
+CREATE TABLE categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    country VARCHAR(50),
+    city VARCHAR(50),
+    rating TINYINT
+) ENGINE=InnoDB;
+
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sku VARCHAR(20) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    category_id INT,
+    supplier_id INT,
+    unit_price DECIMAL(10,2),
+    min_stock INT,
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+) ENGINE=InnoDB;
+ 
+CREATE TABLE employees (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
+    warehouse_id INT,
+    job_title VARCHAR(50),
+    manager_id INT,
+    salary DECIMAL(10,2),
+    hire_date DATE,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE stock (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    warehouse_id INT,
+    product_id INT,
+    quantity INT,
+    updated_at DATE,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+) ENGINE=InnoDB;
+
+CREATE TABLE movements (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT,
+    warehouse_id INT,
+    movement_type ENUM('in','out'),
+    quantity INT,
+    movement_date DATE,
+    employee_id INT,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+) ENGINE=InnoDB;
+
+INSERT INTO warehouses (id, name, city, capacity) VALUES
+  (1, 'Центральный', 'Москва', 5000),
+  (2, 'Северный', 'Санкт-Петербург', 3000),
+  (3, 'Южный', 'Краснодар', 2000);
+ 
+INSERT INTO categories (id, name) VALUES
+  (1, 'Электроника'),
+  (2, 'Бытовая техника'),
+  (3, 'Мебель'),
+  (4, 'Канцелярия'),
+  (5, 'Инструменты'),
+  (6, 'Одежда');
+ 
+INSERT INTO suppliers (id, name, country, city, rating) VALUES
+  (1, 'ТехноСнаб', 'Россия', 'Москва', 5),
+  (2, 'ГлобалТрейд', 'Китай', 'Шэньчжэнь', 4),
+  (3, 'МебельПром', 'Россия', 'Казань', 3),
+  (4, 'ОфисПлюс', 'Россия', 'Москва', 4),
+  (5, 'ИнструментМир', 'Германия', 'Берлин', 5),
+  (6, 'Новый поставщик', 'Беларусь', 'Минск', NULL);
+ 
+INSERT INTO products (id, sku, name, category_id, supplier_id, unit_price, min_stock) VALUES
+  (1, 'EL-001', 'Смартфон X1', 1, 1, 25000, 10),
+  (2, 'EL-002', 'Ноутбук Pro 15', 1, 2, 60000, 5),
+  (3, 'EL-003', 'Наушники Air', 1, 2, 3500, 20),
+  (4, 'EL-004', 'Планшет Tab 10', 1, 1, 18000, 8),
+  (5, 'HA-001', 'Пылесос Turbo', 2, 1, 9000, 6),
+  (6, 'HA-002', 'Микроволновка Mini', 2, 2, 6500, 5),
+  (7, 'HA-003', 'Чайник Smart', 2, 2, 2500, 15),
+  (8, 'FU-001', 'Офисное кресло', 3, 3, 12000, 10),
+  (9, 'FU-002', 'Стол письменный', 3, 3, 8000, 6),
+  (10, 'ST-001', 'Бумага А4', 4, 4, 450, 100),
+  (11, 'ST-002', 'Ручка шариковая', 4, 4, 25, 500),
+  (12, 'ST-003', 'Папка-регистратор', 4, 4, 180, 60),
+  (13, 'TL-001', 'Дрель ударная', 5, 5, 5500, 8),
+  (14, 'TL-002', 'Набор отвёрток', 5, 5, 1200, 12),
+  (15, 'ST-004', 'Степлер', 4, 4, 350, 30);
+ 
+INSERT INTO employees (id, first_name, last_name, warehouse_id, job_title, manager_id, salary, hire_date) VALUES
+  (1, 'Алексей', 'Морозов', 1, 'Начальник склада', NULL, 95000, '2016-03-01'),
+  (2, 'Ирина', 'Кузьмина', 1, 'Кладовщик', 1, 55000, '2019-05-12'),
+  (3, 'Павел', 'Орлов', 1, 'Грузчик', 1, 42000, '2021-08-23'),
+  (4, 'Светлана', 'Попова', 1, 'Кладовщик', 1, 52000, '2022-02-14'),
+  (5, 'Дмитрий', 'Волков', 2, 'Начальник склада', NULL, 88000, '2017-09-04'),
+  (6, 'Мария', 'Лебедева', 2, 'Кладовщик', 5, 50000, '2020-11-30'),
+  (7, 'Николай', 'Егоров', 2, 'Грузчик', 5, 40000, '2024-04-08'),
+  (8, 'Ольга', 'Фёдорова', 3, 'Начальник склада', NULL, 80000, '2018-06-18'),
+  (9, 'Артём', 'Сорокин', 3, 'Кладовщик', 8, 48000, '2023-10-02'),
+  (10, 'Виктор', 'Белов', NULL, 'Водитель', 1, 46000, '2025-01-20');
+ 
+INSERT INTO stock (id, warehouse_id, product_id, quantity, updated_at) VALUES
+  (1, 1, 1, 8, '2026-10-12'),
+  (2, 2, 1, 4, '2026-10-17'),
+  (3, 1, 2, 3, '2026-10-10'),
+  (4, 2, 2, 1, '2026-10-18'),
+  (5, 1, 3, 40, '2026-09-15'),
+  (6, 3, 3, 15, '2026-09-20'),
+  (7, 1, 4, 6, '2026-09-25'),
+  (8, 3, 4, 5, '2026-10-19'),
+  (9, 2, 5, 4, '2026-09-10'),
+  (10, 3, 5, 3, '2026-09-01'),
+  (11, 1, 6, 2, '2026-10-01'),
+  (12, 2, 6, 1, '2026-09-05'),
+  (13, 1, 7, 30, '2026-09-18'),
+  (14, 2, 7, 12, '2026-10-05'),
+  (15, 3, 7, 8, '2026-09-02'),
+  (16, 1, 8, 9, '2026-10-02'),
+  (17, 3, 8, 4, '2026-09-11'),
+  (18, 2, 9, 2, '2026-10-08'),
+  (19, 1, 10, 300, '2026-09-30'),
+  (20, 2, 10, 120, '2026-09-12'),
+  (21, 3, 10, 80, '2026-10-10'),
+  (22, 1, 11, 900, '2026-10-12'),
+  (23, 2, 11, 400, '2026-09-13'),
+  (24, 1, 12, 40, '2026-10-14'),
+  (25, 2, 12, 15, '2026-09-20'),
+  (26, 2, 13, 10, '2026-10-15'),
+  (27, 3, 13, 6, '2026-09-22'),
+  (28, 1, 14, 20, '2026-10-16'),
+  (29, 3, 14, 9, '2026-10-19');
+ 
+INSERT INTO movements (id, product_id, warehouse_id, movement_type, quantity, movement_date, employee_id) VALUES
+  (1, 1, 1, 'in', 20, '2026-08-05', 2),
+  (2, 1, 1, 'out', 12, '2026-08-20', 3),
+  (3, 2, 1, 'in', 10, '2026-08-05', 2),
+  (4, 2, 1, 'out', 7, '2026-09-02', 4),
+  (5, 3, 1, 'in', 100, '2026-08-10', 2),
+  (6, 3, 1, 'out', 60, '2026-09-15', 3),
+  (7, 3, 3, 'in', 30, '2026-08-12', 9),
+  (8, 3, 3, 'out', 15, '2026-09-20', 9),
+  (9, 4, 1, 'in', 15, '2026-08-15', 4),
+  (10, 4, 1, 'out', 9, '2026-09-25', 2),
+  (11, 5, 2, 'in', 10, '2026-08-18', 6),
+  (12, 5, 2, 'out', 6, '2026-09-10', 7),
+  (13, 6, 1, 'in', 8, '2026-08-20', 2),
+  (14, 6, 1, 'out', 6, '2026-10-01', 3),
+  (15, 7, 1, 'in', 60, '2026-08-22', 4),
+  (16, 7, 1, 'out', 30, '2026-09-18', 3),
+  (17, 7, 2, 'in', 20, '2026-08-25', 6),
+  (18, 7, 2, 'out', 8, '2026-10-05', 7),
+  (19, 8, 1, 'in', 20, '2026-08-28', 2),
+  (20, 8, 1, 'out', 11, '2026-10-02', 4),
+  (21, 9, 2, 'in', 8, '2026-09-01', 6),
+  (22, 9, 2, 'out', 6, '2026-10-08', 7),
+  (23, 10, 1, 'in', 500, '2026-09-03', 2),
+  (24, 10, 1, 'out', 200, '2026-09-30', 3),
+  (25, 10, 3, 'in', 150, '2026-09-05', 9),
+  (26, 10, 3, 'out', 70, '2026-10-10', 9),
+  (27, 11, 1, 'in', 1500, '2026-09-08', 4),
+  (28, 11, 1, 'out', 600, '2026-10-12', 3),
+  (29, 12, 1, 'in', 80, '2026-09-09', 2),
+  (30, 12, 1, 'out', 40, '2026-10-14', 4),
+  (31, 13, 2, 'in', 20, '2026-09-12', 6),
+  (32, 13, 2, 'out', 10, '2026-10-15', 7),
+  (33, 14, 1, 'in', 40, '2026-09-14', 2),
+  (34, 14, 1, 'out', 20, '2026-10-16', 3),
+  (35, 1, 2, 'in', 10, '2026-09-16', 6),
+  (36, 1, 2, 'out', 6, '2026-10-17', 7),
+  (37, 2, 2, 'in', 5, '2026-09-17', 6),
+  (38, 2, 2, 'out', 4, '2026-10-18', 6),
+  (39, 14, 3, 'in', 15, '2026-09-19', 9),
+  (40, 14, 3, 'out', 6, '2026-10-19', 9),
+  (41, 4, 3, 'in', 10, '2026-09-22', 9),
+  (42, 4, 3, 'out', 5, '2026-10-19', 9);
+
+--1
+SELECT name, unit_price
+FROM products WHERE unit_price > 10000
+ORDER BY unit_price DESC LIMIT 4;
+--2
+SELECT id, name, city, capacity
+FROM warehouses WHERE capacity >= 3000;
+--3
+SELECT first_name, last_name, hire_date
+FROM employees
+ORDER BY hire_date DESC;
+--4
+SELECT first_name, last_name, salary
+FROM employees
+WHERE warehouse_id = 1 AND job_title = 'Кладовщик';
+--5
+SELECT id, name, country
+FROM suppliers
+WHERE country IN ('Германия', 'Россия');
+--6
+SELECT id, sku, name
+FROM products
+WHERE sku LIKE '%ST%';
+--7
+SELECT id, name, country
+FROM suppliers
+WHERE rating IS NULL;
+--8
+SELECT id, product_id, quantity, movement_date
+FROM movements
+WHERE movement_type = 'out'
+AND movement_date BETWEEN '2026-10-01' AND '2026-10-10'
+ORDER BY movement_date;
+--9
+SELECT DISTINCT job_title 
+FROM employees ORDER BY job_title;
+--10
+SELECT name, unit_price
+FROM products
+ORDER BY unit_price
+LIMIT 3 OFFSET 3;
+#12
+SELECT p.name AS product, s.name AS supplier, s.country
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id;
+
+#13
+SELECT c.name AS category, COUNT(p.id) AS products_count
+FROM categories c
+LEFT JOIN products p ON c.id = p.category_id
+GROUP BY c.id, c.name;
+#14
+SELECT s.name AS supplier, COUNT(p.id) AS products_count
+FROM suppliers s
+LEFT JOIN products p ON s.id = p.supplier_id
+GROUP BY s.id, s.name;
+
+#15
+SELECT w.name AS warehouse, p.name AS product, s.quantity
+FROM stock s
+JOIN warehouses w ON s.warehouse_id = w.id
+JOIN products p ON s.product_id = p.id
+WHERE w.name = 'Южный';
+
+#16
+SELECT e.first_name, e.last_name, w.name AS warehouse
+FROM employees e
+LEFT JOIN warehouses w ON e.warehouse_id = w.id;
+
+#17
+SELECT e.first_name, e.last_name, m.first_name AS manager_first_name, m.last_name AS manager_last_name
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.id;
+
+#18
+SELECT p.id, p.name
+FROM products p
+LEFT JOIN stock s ON p.id = s.product_id
+WHERE s.id IS NULL;
+
+#20
+SELECT p.name AS product, c.name AS category, s.name AS supplier
+FROM products p
+JOIN categories c ON p.category_id = c.id
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE c.name IN ('Электроника', 'Мебель');
+
+
+#21
+SELECT c.name AS category, COUNT(p.id) AS products_count, AVG(p.unit_price) AS avg_price
+FROM categories c
+JOIN products p ON c.id = p.category_id
+GROUP BY c.id, c.name;
+
+#22
+SELECT c.name AS category, AVG(p.unit_price) AS avg_price
+FROM categories c
+JOIN products p ON c.id = p.category_id
+GROUP BY c.id, c.name
+HAVING AVG(p.unit_price) > 5000;
+#23
+SELECT p.name AS product, SUM(s.quantity) AS total_quantity
+FROM products p
+JOIN stock s ON p.id = s.product_id
+GROUP BY p.id, p.name
+ORDER BY total_quantity DESC, p.id ASC;
+
+#24
+SELECT w.name AS warehouse, SUM(s.quantity * p.unit_price) AS stock_value
+FROM stock s
+JOIN warehouses w ON s.warehouse_id = w.id
+JOIN products p ON s.product_id = p.id
+GROUP BY w.id, w.name;
+#27
+SELECT 
+ job_title, 
+ COUNT(*) AS employees_count, 
+ AVG(salary) AS avg_salary
+FROM employees
+GROUP BY job_title
+ORDER BY employees_count DESC, job_title ASC;
+#28
+SELECT w.name AS warehouse, SUM(s.quantity) AS total_quantity
+FROM stock s
+JOIN warehouses w ON s.warehouse_id = w.id
+GROUP BY w.id, w.name
+HAVING SUM(s.quantity) > 500;
+
+#29
+SELECT s.name AS supplier, COUNT(p.id) AS products_count
+FROM suppliers s
+JOIN products p ON s.id = p.supplier_id
+GROUP BY s.id, s.name
+ORDER BY products_count DESC, s.name ASC
+LIMIT 3;
+
+#30
+SELECT 
+    w.name AS warehouse, 
+    MIN(m.movement_date) AS first_date, 
+    MAX(m.movement_date) AS last_date, 
+    COUNT(*) AS movements_count
+FROM movements m
+JOIN warehouses w ON m.warehouse_id = w.id
+GROUP BY w.id, w.name;
