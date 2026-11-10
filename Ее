@@ -1,427 +1,125 @@
--- ============================================================
--- ЗАДАНИЕ 1. Многотабличный JOIN и фильтрация
--- ============================================================
-SELECT
-    o.id              AS order_id,
-    o.order_date,
-    c.full_name       AS customer_name,
-    c.city,
-    o.total_amount,
-    COUNT(oi.id)      AS items_count
-FROM orders o
-JOIN customers c   ON c.id = o.customer_id
-JOIN order_items oi ON oi.order_id = o.id
-WHERE o.status = 'delivered'
-  AND o.order_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-GROUP BY o.id, o.order_date, c.full_name, c.city, o.total_amount
-ORDER BY o.total_amount DESC;
+CREATE DATABASE IF NOT EXISTS bookstore;
+USE bookstore;
 
-
--- ============================================================
--- ЗАДАНИЕ 2. LEFT JOIN и поиск «потерянных» записей
--- ============================================================
-SELECT
-    b.title,
-    a.full_name AS author,
-    cat.name    AS category,
-    b.price
-FROM books b
-JOIN authors a      ON a.id = b.author_id
-JOIN categories cat ON cat.id = b.category_id
-LEFT JOIN order_items oi ON oi.book_id = b.id
-WHERE oi.id IS NULL
-ORDER BY b.price DESC;
-
-
--- ============================================================
--- ЗАДАНИЕ 3. Агрегация с GROUP BY и HAVING
--- ============================================================
-SELECT
-    a.full_name,
-    COUNT(b.id)    AS books_count,
-    SUM(b.stock)   AS total_stock
-FROM authors a
-JOIN books b ON b.author_id = a.id
-GROUP BY a.id, a.full_name
-HAVING COUNT(b.id) >= 3
-   AND SUM(b.stock) > 50;
-
-
--- ============================================================
--- ЗАДАНИЕ 4. Подзапрос в WHERE
--- ============================================================
-SELECT
-    c.full_name,
-    c.email,
-    SUM(o.total_amount) AS total_spent
-FROM customers c
-JOIN orders o ON o.customer_id = c.id
-GROUP BY c.id, c.full_name, c.email
-HAVING SUM(o.total_amount) > (
-    SELECT AVG(total_amount) FROM orders
+CREATE TABLE categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE
 );
 
+CREATE TABLE authors (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(150) NOT NULL,
+    country VARCHAR(80),
+    birth_year SMALLINT
+);
 
--- ============================================================
--- ЗАДАНИЕ 5. Коррелированный подзапрос
--- ============================================================
-SELECT
-    cat.name AS category,
-    (
-        SELECT b2.title
-        FROM books b2
-        WHERE b2.category_id = cat.id
-        ORDER BY b2.price DESC
-        LIMIT 1
-    ) AS most_expensive_book
-FROM categories cat;
+CREATE TABLE books (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(200) NOT NULL,
+    author_id INT,
+    category_id INT,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    published_year SMALLINT,
+    isbn VARCHAR(20) UNIQUE,
+    FOREIGN KEY (author_id) REFERENCES authors(id),
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+);
 
+CREATE TABLE customers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(150) NOT NULL,
+    email VARCHAR(120) UNIQUE NOT NULL,
+    city VARCHAR(80),
+    registration_date DATE NOT NULL
+);
 
--- ============================================================
--- ЗАДАНИЕ 6. JOIN + агрегация + сортировка
--- ============================================================
-SELECT
-    c.city,
-    COUNT(DISTINCT c.id)  AS unique_customers,
-    COUNT(o.id)           AS orders_count,
-    SUM(o.total_amount)   AS revenue
-FROM customers c
-JOIN orders o ON o.customer_id = c.id
-WHERE o.status = 'delivered'
-GROUP BY c.city
-HAVING SUM(o.total_amount) > 10000
-ORDER BY revenue DESC;
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT,
+    order_date DATETIME NOT NULL,
+    status ENUM('new','paid','shipped','delivered','cancelled') DEFAULT 'new',
+    total_amount DECIMAL(12,2),
+    FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
 
+CREATE TABLE order_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    order_id INT,
+    book_id INT,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (book_id) REFERENCES books(id)
+);
 
--- ============================================================
--- ЗАДАНИЕ 7. Многоуровневый подзапрос / CTE
--- ============================================================
-WITH city_book_sales AS (
-    SELECT
-        c.city,
-        b.id   AS book_id,
-        b.title,
-        COUNT(DISTINCT o.id) AS orders_count
-    FROM orders o
-    JOIN customers c   ON c.id = o.customer_id
-    JOIN order_items oi ON oi.order_id = o.id
-    JOIN books b       ON b.id = oi.book_id
-    GROUP BY c.city, b.id, b.title
-),
-ranked AS (
-    SELECT
-        city,
-        title,
-        orders_count,
-        ROW_NUMBER() OVER (PARTITION BY city ORDER BY orders_count DESC) AS rn
-    FROM city_book_sales
-)
-SELECT city, title, orders_count
-FROM ranked
-WHERE rn <= 5
-ORDER BY orders_count DESC
-LIMIT 5;
+-- Индексы на внешних ключах и часто используемых полях
+CREATE INDEX idx_books_author ON books(author_id);
+CREATE INDEX idx_books_category ON books(category_id);
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+CREATE INDEX idx_orders_date ON orders(order_date);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_order_items_order ON order_items(order_id);
+CREATE INDEX idx_order_items_book ON order_items(book_id);
 
+INSERT INTO categories (name) VALUES
+('Фантастика'), ('Детектив'), ('Роман'), ('Наука'), ('Фэнтези'), ('Поэзия');
 
--- ============================================================
--- ЗАДАНИЕ 8. Оконные функции
--- ============================================================
-SELECT
-    b.title,
-    b.price,
-    AVG(b.price) OVER (PARTITION BY b.category_id) AS avg_category_price,
-    b.price - AVG(b.price) OVER (PARTITION BY b.category_id) AS diff
-FROM books b;
+INSERT INTO authors (full_name, country, birth_year) VALUES
+('Иван Петров', 'Россия', 1975),
+('Мария Сидорова', 'Россия', 1982),
+('John Smith', 'США', 1968),
+('Анна Кузнецова', 'Россия', 1990),
+('Пётр Новиков', 'Россия', 1960),
+('Emily Brown', 'Великобритания', 1979);
 
+INSERT INTO books (title, author_id, category_id, price, stock, published_year, isbn) VALUES
+('Звёздные миры', 1, 1, 1200.00, 30, 2020, 'ISBN001'),
+('Тайна старого дома', 2, 2, 950.00, 25, 2019, 'ISBN002'),
+('Любовь и время', 2, 3, 800.00, 40, 2021, 'ISBN003'),
+('Квантовая физика', 3, 4, 1500.00, 15, 2018, 'ISBN004'),
+('Космический рейд', 1, 1, 1100.00, 20, 2022, 'ISBN005'),
+('Драконьи легенды', 4, 5, 1350.00, 18, 2021, 'ISBN006'),
+('Стихи о природе', 4, 6, 500.00, 50, 2020, 'ISBN007'),
+('Убийство в поезде', 3, 2, 990.00, 22, 2017, 'ISBN008'),
+('Время перемен', 5, 3, 870.00, 35, 2023, 'ISBN009'),
+('Тайны океана', 6, 4, 1600.00, 10, 2022, 'ISBN010'),
+('Огненный меч', 6, 5, 1450.00, 12, 2023, 'ISBN011'),
+('Звёздный путь', 1, 1, 1250.00, 8, 2024, 'ISBN012');
 
--- ============================================================
--- ЗАДАНИЕ 9. Ранжирование с RANK / DENSE_RANK
--- ============================================================
-SELECT
-    a.full_name,
-    SUM(oi.quantity) AS total_sold,
-    DENSE_RANK() OVER (ORDER BY SUM(oi.quantity) DESC) AS rank_position
-FROM authors a
-JOIN books b       ON b.author_id = a.id
-JOIN order_items oi ON oi.book_id = b.id
-GROUP BY a.id, a.full_name
-ORDER BY rank_position
-LIMIT 10;
+INSERT INTO customers (full_name, email, city, registration_date) VALUES
+('Алексей Иванов', 'alexey.ivanov@gmail.com', 'Москва', '2024-11-15'),
+('Ольга Смирнова', 'olga.smirnova@yandex.ru', 'Санкт-Петербург', '2025-01-10'),
+('Дмитрий Козлов', 'dmitry.kozlov@gmail.com', 'Москва', '2025-02-20'),
+('Наталья Волкова', 'natalia.volkova@mail.ru', 'Казань', '2025-03-05'),
+('Сергей Морозов', 'sergey.morozov@yandex.ru', 'Москва', '2025-03-25'),
+('Екатерина Лебедева', 'ekaterina.lebedeva@gmail.com', 'Новосибирск', '2025-04-12'),
+('Андрей Соколов', 'andrey.sokolov@mail.ru', 'Санкт-Петербург', '2025-05-18');
 
+INSERT INTO orders (customer_id, order_date, status, total_amount) VALUES
+(1, '2025-01-20 10:30:00', 'delivered', 2400.00),
+(1, '2025-02-15 14:00:00', 'delivered', 950.00),
+(2, '2025-02-01 09:15:00', 'delivered', 1500.00),
+(3, '2025-03-10 16:45:00', 'delivered', 2700.00),
+(4, '2025-03-20 11:00:00', 'delivered', 500.00),
+(5, '2025-04-05 13:30:00', 'delivered', 1600.00),
+(1, '2025-04-18 10:00:00', 'shipped', 1250.00),
+(2, '2025-05-02 15:20:00', 'paid', 990.00),
+(3, '2025-05-10 12:10:00', 'new', 870.00),
+(6, '2025-05-22 09:40:00', 'delivered', 1450.00),
+(4, '2025-06-01 18:00:00', 'delivered', 3000.00),
+(5, '2025-06-10 11:30:00', 'cancelled', 1200.00);
 
--- ============================================================
--- ЗАДАНИЕ 10. Работа с датами
--- ============================================================
-SELECT
-    DATE_FORMAT(c.registration_date, '%Y-%m') AS month,
-    COUNT(DISTINCT c.id) AS new_customers,
-    COUNT(DISTINCT o.id) AS orders_within_30_days
-FROM customers c
-LEFT JOIN orders o
-       ON o.customer_id = c.id
-      AND o.order_date >= c.registration_date
-      AND o.order_date <  DATE_ADD(c.registration_date, INTERVAL 30 DAY)
-WHERE YEAR(c.registration_date) = 2025
-GROUP BY DATE_FORMAT(c.registration_date, '%Y-%m')
-ORDER BY month;
-
-
--- ============================================================
--- ЗАДАНИЕ 11. Строковые функции и поиск
--- ============================================================
-SELECT full_name, email, city
-FROM customers
-WHERE (LOWER(email) LIKE '%@gmail.com' OR LOWER(email) LIKE '%@yandex.ru')
-  AND LOWER(full_name) LIKE '%а%';
-
-
--- ============================================================
--- ЗАДАНИЕ 12. CASE и условная логика
--- ============================================================
-SELECT
-    o.id,
-    o.order_date,
-    o.total_amount,
-    CASE
-        WHEN o.total_amount > 5000 AND o.status IN ('new','paid') THEN 'Срочный'
-        WHEN o.total_amount BETWEEN 1000 AND 5000                  THEN 'Обычный'
-        ELSE 'Мелкий'
-    END AS priority
-FROM orders o
-ORDER BY
-    CASE
-        WHEN o.total_amount > 5000 AND o.status IN ('new','paid') THEN 1
-        WHEN o.total_amount BETWEEN 1000 AND 5000                  THEN 2
-        ELSE 3
-    END,
-    o.total_amount;
-
-
--- ============================================================
--- ЗАДАНИЕ 13. UNION и объединение результатов
--- ============================================================
-SELECT c.id, c.full_name, c.email, 'new_customer' AS type
-FROM customers c
-WHERE c.registration_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-
-UNION ALL
-
-SELECT DISTINCT c.id, c.full_name, c.email, 'recent_buyer' AS type
-FROM customers c
-JOIN orders o ON o.customer_id = c.id
-WHERE o.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY);
-
-
--- ============================================================
--- ЗАДАНИЕ 14. Транзакции и целостность данных
--- ============================================================
-START TRANSACTION;
-
--- 1. Уменьшаем остаток (с проверкой)
-UPDATE books
-SET stock = stock - 2
-WHERE id = 1 AND stock >= 2;
-
--- если не обновилось ни одной строки — откат
--- (в клиенте проверить ROW_COUNT())
--- ROLLBACK при ROW_COUNT() = 0
-
--- 2. Создаём заказ
-INSERT INTO orders (customer_id, order_date, status, total_amount)
-VALUES (1, NOW(), 'new', 0);
-
-SET @new_order_id = LAST_INSERT_ID();
-
--- 3. Добавляем позицию
-INSERT INTO order_items (order_id, book_id, quantity, unit_price)
-SELECT @new_order_id, id, 2, price
-FROM books WHERE id = 1;
-
--- 4. Обновляем total_amount
-UPDATE orders
-SET total_amount = (
-    SELECT SUM(quantity * unit_price)
-    FROM order_items
-    WHERE order_id = @new_order_id
-)
-WHERE id = @new_order_id;
-
-COMMIT;
--- при ошибке на любом шаге: ROLLBACK;
-
-
--- ============================================================
--- ЗАДАНИЕ 15. Представления (VIEW)
--- ============================================================
-CREATE OR REPLACE VIEW v_book_sales_stats AS
-SELECT
-    b.id,
-    b.title,
-    a.full_name  AS author,
-    cat.name     AS category,
-    b.price,
-    COALESCE(SUM(oi.quantity), 0)                              AS total_sold,
-    COALESCE(SUM(oi.quantity * oi.unit_price), 0)              AS total_revenue,
-    COUNT(DISTINCT o.customer_id)                              AS unique_buyers
-FROM books b
-JOIN authors a      ON a.id = b.author_id
-JOIN categories cat ON cat.id = b.category_id
-LEFT JOIN order_items oi ON oi.book_id = b.id
-LEFT JOIN orders o       ON o.id = oi.order_id
-GROUP BY b.id, b.title, a.full_name, cat.name, b.price;
-
--- Топ-5 книг по выручке
-SELECT *
-FROM v_book_sales_stats
-ORDER BY total_revenue DESC
-LIMIT 5;
-
-
--- ============================================================
--- ЗАДАНИЕ 16. Хранимые процедуры
--- ============================================================
-DELIMITER $$
-
-CREATE PROCEDURE GetCustomerOrderHistory(IN p_customer_id INT)
-BEGIN
-    -- Заказы клиента
-    SELECT
-        o.id           AS order_id,
-        o.order_date,
-        o.status,
-        o.total_amount
-    FROM orders o
-    WHERE o.customer_id = p_customer_id
-    ORDER BY o.order_date DESC;
-
-    -- Книги по каждому заказу
-    SELECT
-        o.id           AS order_id,
-        b.title,
-        oi.quantity,
-        oi.unit_price
-    FROM orders o
-    JOIN order_items oi ON oi.order_id = o.id
-    JOIN books b        ON b.id = oi.book_id
-    WHERE o.customer_id = p_customer_id
-    ORDER BY o.id, b.title;
-END$$
-
-DELIMITER ;
-
-
--- ============================================================
--- ЗАДАНИЕ 17. Триггеры
--- ============================================================
-DELIMITER $$
-
-CREATE TRIGGER trg_order_items_after_insert
-AFTER INSERT ON order_items
-FOR EACH ROW
-BEGIN
-    DECLARE v_new_stock INT;
-
-    -- 1. Уменьшаем stock
-    UPDATE books
-    SET stock = stock - NEW.quantity
-    WHERE id = NEW.book_id;
-
-    -- 2. Проверяем отрицательный остаток
-    SELECT stock INTO v_new_stock
-    FROM books
-    WHERE id = NEW.book_id;
-
-    IF v_new_stock < 0 THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Недостаточно товара на складе';
-    END IF;
-
-    -- 3. Пересчитываем total_amount
-    UPDATE orders
-    SET total_amount = (
-        SELECT SUM(quantity * unit_price)
-        FROM order_items
-        WHERE order_id = NEW.order_id
-    )
-    WHERE id = NEW.order_id;
-END$$
-
-DELIMITER ;
-
-
--- ============================================================
--- ЗАДАНИЕ 18. Индексы и анализ производительности
--- ============================================================
-CREATE INDEX idx_orders_customer_date_status
-ON orders (customer_id, order_date, status);
-
--- Порядок: customer_id (равенство) → order_date (диапазон) → status
--- Сначала столбец с '=', затем с диапазоном, затем остаточное условие.
--- Проверка: EXPLAIN SELECT * FROM orders
--- WHERE customer_id = 1
---   AND order_date BETWEEN '2025-01-01' AND '2025-12-31'
---   AND status = 'delivered';
-
-
--- ============================================================
--- ЗАДАНИЕ 19. Рекурсивный CTE (календарь)
--- ============================================================
-WITH RECURSIVE calendar AS (
-    SELECT DATE_FORMAT(CURDATE(), '%Y-%m-01') AS d
-    UNION ALL
-    SELECT DATE_ADD(d, INTERVAL 1 DAY)
-    FROM calendar
-    WHERE DATE_ADD(d, INTERVAL 1 DAY) < DATE_ADD(LAST_DAY(CURDATE()), INTERVAL 1 DAY)
-)
-SELECT
-    c.d AS order_date,
-    COUNT(o.id)                   AS orders_count,
-    COALESCE(SUM(o.total_amount), 0) AS total_sum
-FROM calendar c
-LEFT JOIN orders o
-       ON DATE(o.order_date) = c.d
-GROUP BY c.d
-ORDER BY c.d;
-
-
--- ============================================================
--- ЗАДАНИЕ 20. Комплексный аналитический запрос
--- ============================================================
-WITH category_revenue AS (
-    SELECT
-        cat.id   AS category_id,
-        cat.name AS category_name,
-        SUM(oi.quantity * oi.unit_price) AS total_revenue
-    FROM categories cat
-    JOIN books b        ON b.category_id = cat.id
-    JOIN order_items oi ON oi.book_id = b.id
-    GROUP BY cat.id, cat.name
-    ORDER BY total_revenue DESC
-    LIMIT 3
-),
-author_sales AS (
-    SELECT
-        cat.id   AS category_id,
-        a.id     AS author_id,
-        a.full_name,
-        SUM(oi.quantity) AS sold_quantity,
-        ROW_NUMBER() OVER (
-            PARTITION BY cat.id
-            ORDER BY SUM(oi.quantity) DESC
-        ) AS rn
-    FROM categories cat
-    JOIN books b        ON b.category_id = cat.id
-    JOIN authors a      ON a.id = b.author_id
-    JOIN order_items oi ON oi.book_id = b.id
-    GROUP BY cat.id, a.id, a.full_name
-)
-SELECT
-    cr.category_name,
-    cr.total_revenue,
-    ar.full_name       AS best_author,
-    ar.sold_quantity   AS author_sold_in_category
-FROM category_revenue cr
-JOIN author_sales ar
-       ON ar.category_id = cr.category_id
-      AND ar.rn = 1
-ORDER BY cr.total_revenue DESC;
+INSERT INTO order_items (order_id, book_id, quantity, unit_price) VALUES
+(1, 1, 1, 1200.00), (1, 2, 1, 950.00), (1, 7, 1, 500.00),
+(2, 2, 1, 950.00),
+(3, 4, 1, 1500.00),
+(4, 1, 1, 1200.00), (4, 5, 1, 1100.00), (4, 7, 1, 500.00),
+(5, 7, 1, 500.00),
+(6, 10, 1, 1600.00),
+(7, 12, 1, 1250.00),
+(8, 8, 1, 990.00),
+(9, 9, 1, 870.00),
+(10, 11, 1, 1450.00),
+(11, 10, 1, 1600.00), (11, 6, 1, 1350.00), (11, 7, 1, 500.00),
+(12, 3, 1, 800.00), (12, 7, 1, 500.00);
